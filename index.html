@@ -778,6 +778,7 @@ const state = {
   counts: Object.fromEntries(SECTIONS.map(s=>[s.key, s.def])),
   formPropertyName: '',
   formDate: todayStr(),
+  formAssignee: '',
   formReason: '',
   showModal: false,
   showSettings: false,
@@ -833,6 +834,7 @@ async function submitReport(){
   const payload = {
     propertyName: report.propertyName,
     date: report.date,
+    assignee: report.assignee,
     reason: report.reason,
     requiredTotal: req.length,
     requiredDone: done,
@@ -871,11 +873,13 @@ function enterSetup(existing){
     state.counts = Object.assign({}, existing.counts);
     state.formPropertyName = existing.propertyName || '';
     state.formDate = existing.date || todayStr();
+    state.formAssignee = existing.assignee || '';
     state.formReason = existing.reason || '';
   } else {
     state.counts = Object.fromEntries(SECTIONS.map(s=>[s.key, s.def]));
     state.formPropertyName = '';
     state.formDate = todayStr();
+    state.formAssignee = '';
     state.formReason = '';
   }
   state.screen = 'setup';
@@ -905,9 +909,11 @@ async function deleteReportById(id){
 async function handleGenerate(){
   const nameInput = document.getElementById('propertyNameInput');
   const dateInput = document.getElementById('reportDateInput');
+  const assigneeInput = document.getElementById('assigneeInput');
   const reasonInput = document.getElementById('reportReasonInput');
   const propertyName = nameInput ? nameInput.value : '';
   const date = (dateInput && dateInput.value) ? dateInput.value : todayStr();
+  const assignee = assigneeInput ? assigneeInput.value : '';
   const reason = reasonInput ? reasonInput.value : '';
   const isEdit = !!(state.currentReport && state.currentReport.id);
   const hasProgress = isEdit && state.currentReport.rooms.some(r=>r.items.some(it=>it.done));
@@ -917,7 +923,7 @@ async function handleGenerate(){
   const createdAt = isEdit ? state.currentReport.createdAt : new Date().toISOString();
   const status = isEdit ? state.currentReport.status : 'in_progress';
   const rooms = buildRoomsFromCounts(state.counts);
-  const report = {id, propertyName, date, reason, counts: Object.assign({}, state.counts), rooms, status, createdAt, updatedAt: new Date().toISOString()};
+  const report = {id, propertyName, date, assignee, reason, counts: Object.assign({}, state.counts), rooms, status, createdAt, updatedAt: new Date().toISOString()};
   state.currentReport = report;
   await persist();
   state.screen = 'checklist';
@@ -995,7 +1001,7 @@ function renderHome(){
     <div class="report-card" data-action="open-report" data-id="${r.id}">
       <div class="report-card-main">
         <div class="report-name">${r.propertyName ? escapeHtml(r.propertyName) : '(物件名未設定)'}</div>
-        <div class="report-meta">${escapeHtml(r.date || '')} ・ 必須 ${done}/${req.length}${r.reason?' ・ '+escapeHtml(r.reason):''}${r.sheetSubmitted?' ・ 📤送信済み':''}</div>
+        <div class="report-meta">${escapeHtml(r.date || '')}${r.assignee?' ・ '+escapeHtml(r.assignee):''} ・ 必須 ${done}/${req.length}${r.reason?' ・ '+escapeHtml(r.reason):''}${r.sheetSubmitted?' ・ 📤送信済み':''}</div>
       </div>
       <div class="report-card-side">
         <span class="status-pill ${submitted?'done':''}">${submitted?'完了':'進行中'}</span>
@@ -1053,8 +1059,12 @@ function renderSetup(){
       </div>
       <div class="field-row" style="margin-top:10px;">
         <div class="field">
-          <label for="reportReasonInput">対象者・利用理由(任意)</label>
-          <input type="text" id="reportReasonInput" placeholder="例) 山田さん・研修中／クレーム後フォロー" value="${escapeAttr(state.formReason)}">
+          <label for="assigneeInput">担当者(任意)</label>
+          <input type="text" id="assigneeInput" placeholder="例) 山田" value="${escapeAttr(state.formAssignee)}">
+        </div>
+        <div class="field">
+          <label for="reportReasonInput">備考・理由(任意)</label>
+          <input type="text" id="reportReasonInput" placeholder="例) 研修中／クレーム後フォロー" value="${escapeAttr(state.formReason)}">
         </div>
       </div>
     </div>
@@ -1106,6 +1116,7 @@ function renderChecklist(){
           <img class="brand-logo-sm" src="${LOGO_URI}" alt="MasterCleaning">
           <span class="pname">${report.propertyName ? escapeHtml(report.propertyName) : '(物件名未設定)'}</span>
           ${report.date?`<span class="pdate">${escapeHtml(report.date)}</span>`:''}
+          ${report.assignee?`<span class="preason">👤${escapeHtml(report.assignee)}</span>`:''}
           ${report.reason?`<span class="preason">${escapeHtml(report.reason)}</span>`:''}
         </div>
         <div class="header-links">
@@ -1192,7 +1203,7 @@ function renderSubmit(){
     <div class="modal-overlay" data-action="close-submit">
       <div class="modal-sheet" data-action="noop">
         <h2>スプレッドシートに提出</h2>
-        <div class="modal-sub">${report.propertyName ? escapeHtml(report.propertyName) : '(物件名未設定)'} ・ 必須 ${done}/${req.length}${missing>0?`(未確認 ${missing}件)`:''}</div>
+        <div class="modal-sub">${report.propertyName ? escapeHtml(report.propertyName) : '(物件名未設定)'}${report.assignee?' ・ 担当:'+escapeHtml(report.assignee):''} ・ 必須 ${done}/${req.length}${missing>0?`(未確認 ${missing}件)`:''}</div>
         ${!state.webAppUrl?`<div class="empty-note">連携設定が未登録です。先にURLを登録してください。</div>`:''}
         <div class="modal-actions" style="margin-top:14px;">
           ${state.webAppUrl
