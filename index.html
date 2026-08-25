@@ -288,6 +288,7 @@ body{
 }
 .field.error input{border-color:var(--danger);}
 .field-error-msg{color:var(--danger);font-size:.72rem;margin-top:4px;}
+.required-badge{display:inline-block;margin-left:6px;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--danger-soft);color:var(--danger);vertical-align:middle;}
 .field label{
   display:block;
   font-size:.78rem;
@@ -1074,18 +1075,18 @@ function renderSetup(){
       <div class="section-title">物件情報</div>
       <div class="field-row">
         <div class="field ${state.formErrors.propertyName?'error':''}">
-          <label for="propertyNameInput">物件名</label>
+          <label for="propertyNameInput">物件名<span class="required-badge">必須</span></label>
           <input type="text" id="propertyNameInput" placeholder="例) ◯◯マンション 302号室" value="${escapeAttr(state.formPropertyName)}">
           ${state.formErrors.propertyName?'<div class="field-error-msg">物件名を入力してください</div>':''}
         </div>
         <div class="field">
-          <label for="reportDateInput">実施日</label>
+          <label for="reportDateInput">実施日<span class="required-badge">必須</span></label>
           <input type="date" id="reportDateInput" value="${escapeAttr(state.formDate)}">
         </div>
       </div>
       <div class="field-row" style="margin-top:10px;">
         <div class="field ${state.formErrors.assignee?'error':''}">
-          <label for="assigneeInput">担当者</label>
+          <label for="assigneeInput">担当者<span class="required-badge">必須</span></label>
           <input type="text" id="assigneeInput" placeholder="例) 山田" value="${escapeAttr(state.formAssignee)}">
           ${state.formErrors.assignee?'<div class="field-error-msg">担当者を入力してください</div>':''}
         </div>
