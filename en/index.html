@@ -286,6 +286,8 @@ body{
   text-transform:uppercase;
   margin:0 0 10px;
 }
+.field.error input{border-color:var(--danger);}
+.field-error-msg{color:var(--danger);font-size:.72rem;margin-top:4px;}
 .field label{
   display:block;
   font-size:.78rem;
@@ -547,7 +549,6 @@ body{
 </head>
 <body>
 
-
 <div class="stage">
   <div class="stage-caption"><b>This is a device-frame preview.</b> Open it in your phone’s browser to use it as a full-screen app.</div>
   <div class="phone-frame">
@@ -780,6 +781,7 @@ const state = {
   formDate: todayStr(),
   formAssignee: '',
   formReason: '',
+  formErrors: {},
   showModal: false,
   showSettings: false,
   showSubmit: false,
@@ -828,6 +830,13 @@ async function boot(){
 async function submitReport(){
   if(!state.webAppUrl || !state.currentReport) return;
   const report = state.currentReport;
+  if(!report.propertyName || !report.assignee){
+    state.showSubmit = false;
+    state.toast = 'Property name and assignee are required. Please fill them in via "Edit setup."';
+    render();
+    setTimeout(()=>{ state.toast=null; render(); }, 4000);
+    return;
+  }
   const req = requiredItems(report);
   const done = req.filter(it=>it.done).length;
   const missingItems = report.rooms.flatMap(r=>r.items.filter(it=>!it.optional && !it.done).map(it=>r.label+':'+it.label));
@@ -869,6 +878,7 @@ async function submitReport(){
 }
 
 function enterSetup(existing){
+  state.formErrors = {};
   if(existing){
     state.counts = Object.assign({}, existing.counts);
     state.formPropertyName = existing.propertyName || '';
@@ -911,10 +921,25 @@ async function handleGenerate(){
   const dateInput = document.getElementById('reportDateInput');
   const assigneeInput = document.getElementById('assigneeInput');
   const reasonInput = document.getElementById('reportReasonInput');
-  const propertyName = nameInput ? nameInput.value : '';
+  const propertyName = nameInput ? nameInput.value.trim() : '';
   const date = (dateInput && dateInput.value) ? dateInput.value : todayStr();
-  const assignee = assigneeInput ? assigneeInput.value : '';
+  const assignee = assigneeInput ? assigneeInput.value.trim() : '';
   const reason = reasonInput ? reasonInput.value : '';
+
+  const errors = {};
+  if(!propertyName) errors.propertyName = true;
+  if(!assignee) errors.assignee = true;
+  state.formPropertyName = propertyName;
+  state.formDate = date;
+  state.formAssignee = assignee;
+  state.formReason = reason;
+  if(Object.keys(errors).length){
+    state.formErrors = errors;
+    render();
+    return;
+  }
+  state.formErrors = {};
+
   const isEdit = !!(state.currentReport && state.currentReport.id);
   const hasProgress = isEdit && state.currentReport.rooms.some(r=>r.items.some(it=>it.done));
   if(hasProgress && !confirm('Changing the configuration may not carry over the checked status for each room. Continue?')) return;
@@ -1048,9 +1073,10 @@ function renderSetup(){
     <div class="section">
       <div class="section-title">Property Info</div>
       <div class="field-row">
-        <div class="field">
-          <label for="propertyNameInput">Property name (optional)</label>
+        <div class="field ${state.formErrors.propertyName?'error':''}">
+          <label for="propertyNameInput">Property name</label>
           <input type="text" id="propertyNameInput" placeholder="e.g. Sakura Apartments, Room 302" value="${escapeAttr(state.formPropertyName)}">
+          ${state.formErrors.propertyName?'<div class="field-error-msg">Please enter a property name</div>':''}
         </div>
         <div class="field">
           <label for="reportDateInput">Date</label>
@@ -1058,9 +1084,10 @@ function renderSetup(){
         </div>
       </div>
       <div class="field-row" style="margin-top:10px;">
-        <div class="field">
-          <label for="assigneeInput">Assignee (optional)</label>
+        <div class="field ${state.formErrors.assignee?'error':''}">
+          <label for="assigneeInput">Assignee</label>
           <input type="text" id="assigneeInput" placeholder="e.g. Taylor" value="${escapeAttr(state.formAssignee)}">
+          ${state.formErrors.assignee?'<div class="field-error-msg">Please enter an assignee</div>':''}
         </div>
         <div class="field">
           <label for="reportReasonInput">Notes / Reason (optional)</label>
